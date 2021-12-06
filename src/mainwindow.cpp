@@ -47,8 +47,8 @@ void MainWindow::addStatement(Statement *stmt) {
 
 void MainWindow::controlCmdlineInput() {
     {
-        std::lock_guard<std::mutex> lock(mtx);
-    if (runningState != INPUTING) return;
+        std::lock_guard <std::mutex> lock(mtx);
+        if (runningState != INPUTING) return;
     }
     std::string cmdline = ui->cmdLineEdit->text().trimmed().toStdString();
     if (!StringUtils::startWith(cmdline, "? ")) {
@@ -212,7 +212,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
                 error(errorMsg);
             }
             clear:
-                ui->cmdLineEdit->clear();
+            ui->cmdLineEdit->clear();
             break;
         }
     }
@@ -251,7 +251,7 @@ void MainWindow::inputInBackGround(const std::string &cmdline) {
         tenv->enter(var, env::INT);
         std::cout << tenv->look(var) << std::endl;
         venv->enter(var, env::Value(std::atoi(inputValue.c_str())));
-    } else if (std::regex_match(inputValue, strFmt)){
+    } else if (std::regex_match(inputValue, strFmt)) {
         tenv->enter(var, env::STRING);
         venv->enter(var, env::Value(inputValue.substr(1, inputValue.size() - 2)));
     }
@@ -268,7 +268,8 @@ void MainWindow::input(const std::string &cmdline) {
 }
 
 bool MainWindow::isBuiltinCmd(const std::string &cmdline) const {
-    static std::regex pattern("LIST|RUN|LOAD|(PRINT [a-zA-Z][a-zA-Z0-9]*)|(INPUT [a-zA-Z][a-zA-Z0-9]*)|CLEAR|HELP|QUIT");
+    static std::regex pattern(
+            "LIST|RUN|LOAD|(PRINT [a-zA-Z][a-zA-Z0-9]*)|(INPUT [a-zA-Z][a-zA-Z0-9]*)|CLEAR|HELP|QUIT");
     return std::regex_match(cmdline, pattern);
 }
 

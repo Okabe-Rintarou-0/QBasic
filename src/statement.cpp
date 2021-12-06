@@ -13,6 +13,6 @@ namespace statement {
                 throw "Invalid Statement! Should contain line number! Line number should be >= 0 and <= 1000000!";
             return new RawStatement(lineno, srcCode);
         }
-            throw "Invalid Statement! Should contain line number and statement!";
+        throw "Invalid Statement! Should contain line number and statement!";
     }
 }

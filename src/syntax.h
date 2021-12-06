@@ -5,10 +5,10 @@
 #include <string>
 
 namespace syntax {
-inline void indent(std::string &str, int depth) {
-    for(int i = 0; i < depth; ++i)
-        str += "  ";
-}
+    inline void indent(std::string &str, int depth) {
+        for (int i = 0; i < depth; ++i)
+            str += "  ";
+    }
 
     class ExpVal;
 

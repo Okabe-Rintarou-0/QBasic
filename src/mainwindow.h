@@ -50,8 +50,8 @@ private:
     } runningState = END;
     Ui::MainWindow *ui;
 
-    std::unique_ptr<env::Table<std::string, env::Value>> venv;
-    std::unique_ptr<env::Table<std::string, env::valueType>> tenv;
+    std::unique_ptr <env::Table<std::string, env::Value>> venv;
+    std::unique_ptr <env::Table<std::string, env::valueType>> tenv;
 
     std::thread *inputWorker = nullptr;
 

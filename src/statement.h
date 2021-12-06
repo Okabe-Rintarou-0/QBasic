@@ -20,7 +20,7 @@ namespace statement {
 
     class RawStatement {
     public:
-        RawStatement(int lineno, const std::string &srcCode): lineno(lineno), srcCode(srcCode){};
+        RawStatement(int lineno, const std::string &srcCode) : lineno(lineno), srcCode(srcCode) {};
 
         RawStatement() = delete;
 
@@ -43,7 +43,8 @@ namespace statement {
 
     class Statement {
     public:
-        Statement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree):lineno(lineno), srcCode(srcCode), syntaxTree(syntaxTree){};
+        Statement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : lineno(lineno), srcCode(srcCode),
+                                                                                    syntaxTree(syntaxTree) {};
 
         virtual ~Statement() = default;
 
