@@ -14,7 +14,7 @@ namespace env {
         std::string sVal;
         int iVal;
     public:
-        Value() = delete;
+        Value() = default;
 
         ~Value() = default;
 
@@ -36,7 +36,7 @@ namespace env {
 
         ~Table() = default;
 
-        inline V *look(const K &key) const {
+        inline V *look(const K &key) {
             if (map.find(key) != map.end())
                 return &(map[key]);
             return nullptr;
@@ -46,9 +46,6 @@ namespace env {
             map[key] = value;
         }
     };
-
-    extern Table<std::string, Value> venv;
-    extern Table<std::string, valueType> tenv;
 }
 
 

@@ -9,7 +9,7 @@
 class StringUtils {
 public:
     static inline bool startWith(const std::string &str, const std::string &start) {
-        return str.find_first_of(start) == 0;
+        return str.find(start) != std::string::npos;
     }
 
     static inline void

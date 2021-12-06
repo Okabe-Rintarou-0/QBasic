@@ -5,6 +5,10 @@
 #include <QKeyEvent>
 #include <memory>
 #include <list>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
+#include "table.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -38,7 +42,24 @@ public:
     ~MainWindow();
 
 private:
+    enum RunningState {
+        INPUTING,
+        RUNNING,
+        END,
+        INITING,
+    } runningState = END;
     Ui::MainWindow *ui;
+
+    std::unique_ptr<env::Table<std::string, env::Value>> venv;
+    std::unique_ptr<env::Table<std::string, env::valueType>> tenv;
+
+    std::thread *inputWorker = nullptr;
+
+    std::mutex mtx;
+
+    std::string inputValue;
+
+    std::condition_variable inputCv;
 
     std::list<RawStatement *> rawStatements;
 
@@ -52,13 +73,27 @@ private:
 
     void addRawStatement(RawStatement *rawStmt);
 
+    bool isBuiltinCmd(const std::string &cmdline) const;
+
+    void runBuiltinCmd(const std::string &cmdline);
+
     void refreshCode();
 
+    void controlCmdlineInput();
+
     void load();
+
+    void runInBackground();
 
     void run();
 
     void init();
+
+    void print(const std::string &cmdline);
+
+    void inputInBackGround(const std::string &cmdline);
+
+    void input(const std::string &cmdline);
 
     void error(const std::string &errorMsg);
 

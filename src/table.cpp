@@ -1,5 +1,5 @@
 #include "table.h"
 
-table::table() {
+namespace env {
 
 }

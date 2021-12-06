@@ -5,21 +5,28 @@
 #include <fstream>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <future>
+#include "stringutils.h"
 #include "statement.h"
 #include "lexer.h"
 #include "parser.h"
+#include "table.h"
 
 using Statement = statement::Statement;
 using Lexer = lexer::Lexer;
 using Parser = parser::Parser;
 
 MainWindow::MainWindow(QWidget *parent)
-        : QMainWindow(parent), ui(new Ui::MainWindow), lexer(std::make_unique<Lexer>()),
-          parser(std::make_unique<Parser>()) {
+        : QMainWindow(parent),
+          ui(new Ui::MainWindow),
+          venv(std::make_unique<env::Table<std::string, env::Value>>()),
+          tenv(std::make_unique<env::Table<std::string, env::valueType>>()),
+          lexer(std::make_unique<Lexer>()), parser(std::make_unique<Parser>()) {
     ui->setupUi(this);
 
     QApplication::connect(ui->btnLoadCode, &QPushButton::clicked, this, &MainWindow::load);
     QApplication::connect(ui->btnRunCode, &QPushButton::clicked, this, &MainWindow::run);
+    QApplication::connect(ui->cmdLineEdit, &QLineEdit::textChanged, this, &MainWindow::controlCmdlineInput);
 }
 
 MainWindow::~MainWindow() {
@@ -36,6 +43,17 @@ void MainWindow::addStatement(Statement *stmt) {
         }
     }
     statements.insert(it, stmt);
+}
+
+void MainWindow::controlCmdlineInput() {
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+    if (runningState != INPUTING) return;
+    }
+    std::string cmdline = ui->cmdLineEdit->text().trimmed().toStdString();
+    if (!StringUtils::startWith(cmdline, "? ")) {
+        ui->cmdLineEdit->setText("? ");
+    }
 }
 
 void MainWindow::error(const std::string &errorMsg) {
@@ -121,7 +139,6 @@ void MainWindow::run() {
         std::cerr << errorMsg << std::endl;
         error(errorMsg);
     }
-
 }
 
 void MainWindow::refreshCode() {
@@ -168,8 +185,22 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         case Qt::Key_Enter: {
             auto cmdline = ui->cmdLineEdit->text().trimmed().toStdString();
             if (cmdline.size() == 0) return;
-            ui->cmdLineEdit->clear();
+
+            if (runningState == INPUTING) {
+                inputValue = StringUtils::getAfter(cmdline, "? ");
+                inputCv.notify_all();
+                inputWorker->join();
+                delete inputWorker;
+                inputWorker = nullptr;
+                runningState = RUNNING;
+                goto clear;
+            }
+
             try {
+                if (isBuiltinCmd(cmdline)) {
+                    runBuiltinCmd(cmdline);
+                    goto clear;
+                }
                 RawStatement *rawStmt = RawStatement::fromCmdline(cmdline);
                 addRawStatement(rawStmt);
                 refreshCode();
@@ -180,7 +211,102 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
                 std::cerr << errorMsg << std::endl;
                 error(errorMsg);
             }
+            clear:
+                ui->cmdLineEdit->clear();
             break;
         }
+    }
+}
+
+void MainWindow::print(const std::string &cmdline) {
+    std::string var = StringUtils::getAfter(cmdline, "PRINT ");
+    env::valueType *typePtr = tenv->look(var);
+    if (typePtr != nullptr) {
+        env::valueType type = *typePtr;
+        env::Value value = *(venv->look(var));
+        switch (type) {
+            case env::INT:
+                ui->resultBrowser->append(QString::number(value.getInt()));
+                break;
+            case env::STRING:
+                ui->resultBrowser->append(QString::fromStdString(value.getString()));
+                break;
+            default:
+                break;
+        }
+
+    }
+    return;
+}
+
+void MainWindow::inputInBackGround(const std::string &cmdline) {
+    static std::regex intFmt("([1-9][0-9]*)|0");
+    static std::regex strFmt("\".*\"");
+    std::string var = StringUtils::getAfter(cmdline, "INPUT ");
+    std::unique_lock <std::mutex> lock(mtx);
+    inputCv.wait(lock);
+
+    std::cout << "inputValue: " << inputValue << std::endl;
+    if (std::regex_match(inputValue, intFmt)) {
+        tenv->enter(var, env::INT);
+        std::cout << tenv->look(var) << std::endl;
+        venv->enter(var, env::Value(std::atoi(inputValue.c_str())));
+    } else if (std::regex_match(inputValue, strFmt)){
+        tenv->enter(var, env::STRING);
+        venv->enter(var, env::Value(inputValue.substr(1, inputValue.size() - 2)));
+    }
+    inputValue.clear();
+}
+
+void MainWindow::input(const std::string &cmdline) {
+    mtx.lock();
+    if (runningState == INPUTING) return;
+    runningState = INPUTING;
+    mtx.unlock();
+    ui->cmdLineEdit->setText("? ");
+    inputWorker = new std::thread(&MainWindow::inputInBackGround, this, cmdline);
+}
+
+bool MainWindow::isBuiltinCmd(const std::string &cmdline) const {
+    static std::regex pattern("LIST|RUN|LOAD|(PRINT [a-zA-Z][a-zA-Z0-9]*)|(INPUT [a-zA-Z][a-zA-Z0-9]*)|CLEAR|HELP|QUIT");
+    return std::regex_match(cmdline, pattern);
+}
+
+void MainWindow::runBuiltinCmd(const std::string &cmdline) {
+    std::cout << "run: " << cmdline << std::endl;
+    if (cmdline == "LIST") {
+        return;
+    }
+
+    if (cmdline == "QUIT") {
+        QApplication::quit();
+    }
+
+    if (cmdline == "RUN") {
+        run();
+        return;
+    }
+
+    if (cmdline == "LOAD") {
+        load();
+        return;
+    }
+
+    if (StringUtils::startWith(cmdline, "PRINT")) {
+        print(cmdline);
+        return;
+    }
+
+    if (StringUtils::startWith(cmdline, "INPUT")) {
+        input(cmdline);
+        return;
+    }
+
+    if (cmdline == "CLEAR") {
+        return;
+    }
+
+    if (cmdline == "HELP") {
+        return;
     }
 }
