@@ -28,6 +28,10 @@ namespace parser {
     class Parser;
 }
 
+namespace syntax {
+    class Exp;
+}
+
 using RawStatement = statement::RawStatement;
 using Statement = statement::Statement;
 using Lexer = lexer::Lexer;
@@ -41,17 +45,18 @@ public:
 
     ~MainWindow();
 
-private:
     enum RunningState {
-        INPUTING,
+        INPUT,
         RUNNING,
         END,
-        INITING,
-    } runningState = END;
+        INIT,
+        NONE,
+    } runningState = END, lastRunningState = NONE;
+
     Ui::MainWindow *ui;
 
     std::unique_ptr <env::Table<std::string, env::Value>> venv;
-    std::unique_ptr <env::Table<std::string, env::valueType>> tenv;
+    std::unique_ptr <env::Table<std::string, env::ValueType>> tenv;
 
     std::thread *inputWorker = nullptr;
 
@@ -60,6 +65,8 @@ private:
     std::string inputValue;
 
     std::condition_variable inputCv;
+
+    std::list<RawStatement *>::const_iterator stmtIter;
 
     std::list<RawStatement *> rawStatements;
 
@@ -81,19 +88,27 @@ private:
 
     void controlCmdlineInput();
 
+    void gotoLine(int lineno);
+
     void load();
 
-    void runInBackground();
+    void help();
 
     void run();
 
     void init();
 
+    void clear();
+
+    void end();
+
     void print(const std::string &cmdline);
 
     void inputInBackGround(const std::string &cmdline);
 
-    void input(const std::string &cmdline);
+    void input(const std::string &var);
+
+    void info(const std::string &infoMsg);
 
     void error(const std::string &errorMsg);
 

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <regex>
+#include <QMainWindow>
 #include "syntax.h"
 
 using SyntaxTree = syntax::SyntaxTree;
@@ -60,8 +61,8 @@ namespace statement {
             return std::to_string(lineno) + " " + srcCode;
         }
 
-        virtual void run() {
-            syntaxTree->run();
+        virtual void run(MainWindow *mainWindow, QTextBrowser *resultDisplay) {
+            syntaxTree->run(mainWindow, resultDisplay);
         }
 
         virtual void clear() {
@@ -81,6 +82,22 @@ namespace statement {
         SyntaxTree *syntaxTree;
     };
 
+    class ErrorStatement : public Statement {
+    public:
+        ErrorStatement(int lineno) : Statement(lineno, "", nullptr) {};
+
+        inline void clear() override {}
+
+        inline void print(std::string &str) override {
+            str += std::to_string(lineno) + " Error\n";
+        }
+
+        inline void run(MainWindow *mainWindow, QTextBrowser *resultDisplay) override {
+            Q_UNUSED(mainWindow);
+            Q_UNUSED(resultDisplay);
+        }
+    };
+
     class RemStatement : public Statement {
     public:
 
@@ -88,6 +105,42 @@ namespace statement {
                                                                                                  syntaxTree) {}
 
         ~RemStatement() = default;
+    };
+
+    class PrintStatement : public Statement {
+    public:
+
+        PrintStatement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : Statement(lineno, srcCode,
+                                                                                                   syntaxTree) {}
+
+        ~PrintStatement() = default;
+    };
+
+    class InputStatement : public Statement {
+    public:
+
+        InputStatement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : Statement(lineno, srcCode,
+                                                                                                   syntaxTree) {}
+
+        ~InputStatement() = default;
+    };
+
+    class GotoStatement : public Statement {
+    public:
+
+        GotoStatement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : Statement(lineno, srcCode,
+                                                                                                  syntaxTree) {}
+
+        ~GotoStatement() = default;
+    };
+
+    class EndStatement : public Statement {
+    public:
+
+        EndStatement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : Statement(lineno, srcCode,
+                                                                                                  syntaxTree) {}
+
+        ~EndStatement() = default;
     };
 }
 

@@ -9,7 +9,7 @@ namespace lexer {
         int len = code.size();
         parser::TokenType lastType = parser::INVALID;
         std::string lex;
-        while (begin < len && cur < len) {
+        while (cur < len) {
             lex += code[cur];
             std::cout << "cur lex: " << lex << std::endl;
             auto tokenType = match(lex);
@@ -27,7 +27,8 @@ namespace lexer {
                 lex.clear();
             }
         }
-        if (lastTok > begin) {
+        std::cout << lastTok << " " << begin << std::endl;
+        if (lastTok >= begin && lastTok < len) {
             std::string token = code.substr(begin, lastTok - begin + 1);
             std::cout << "read token: " << token << std::endl;
             tokens.push_back(parser::Token::makeToken(token, lastType));

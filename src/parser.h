@@ -75,7 +75,7 @@ namespace parser {
         }
     };
 
-    inline std::ostream &operator<<(std::ostream &os, const Token &token) {
+    inline std::ostream &operator<<(std::ostreams &os, const Token &token) {
         return os << "(" << token.tok << ", " << typeTable[token.type] << ")";
     }
 
@@ -86,17 +86,6 @@ namespace parser {
         statement::StatementType getStatementType(const std::vector <Token> &tokens, std::string &errorMsg);
 
         statement::Statement *parse(int lineno, const std::string &srcCode, const std::vector <Token> &tokens);
-    };
-
-    class ParseException : public std::exception {
-    private:
-        std::string msg;
-    public:
-        ParseException(const std::string &msg) : msg(msg) {};
-
-        ~ParseException() = default;
-
-        virtual const char *what(void) const noexcept override;
     };
 }
 

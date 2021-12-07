@@ -4,7 +4,7 @@
 #include <map>
 
 namespace env {
-    enum valueType {
+    enum ValueType {
         INT,
         STRING
     };
@@ -44,6 +44,10 @@ namespace env {
 
         inline void enter(const K &key, const V &value) {
             map[key] = value;
+        }
+
+        inline void clear() {
+            map.clear();
         }
     };
 }

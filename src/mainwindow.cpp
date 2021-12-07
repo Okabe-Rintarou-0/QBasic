@@ -20,12 +20,13 @@ MainWindow::MainWindow(QWidget *parent)
         : QMainWindow(parent),
           ui(new Ui::MainWindow),
           venv(std::make_unique<env::Table<std::string, env::Value>>()),
-          tenv(std::make_unique<env::Table<std::string, env::valueType>>()),
+          tenv(std::make_unique<env::Table<std::string, env::ValueType>>()),
           lexer(std::make_unique<Lexer>()), parser(std::make_unique<Parser>()) {
     ui->setupUi(this);
 
     QApplication::connect(ui->btnLoadCode, &QPushButton::clicked, this, &MainWindow::load);
     QApplication::connect(ui->btnRunCode, &QPushButton::clicked, this, &MainWindow::run);
+    QApplication::connect(ui->btnClearCode, &QPushButton::clicked, this, &MainWindow::clear);
     QApplication::connect(ui->cmdLineEdit, &QLineEdit::textChanged, this, &MainWindow::controlCmdlineInput);
 }
 
@@ -48,7 +49,7 @@ void MainWindow::addStatement(Statement *stmt) {
 void MainWindow::controlCmdlineInput() {
     {
         std::lock_guard <std::mutex> lock(mtx);
-        if (runningState != INPUTING) return;
+        if (runningState != INPUT) return;
     }
     std::string cmdline = ui->cmdLineEdit->text().trimmed().toStdString();
     if (!StringUtils::startWith(cmdline, "? ")) {
@@ -117,27 +118,75 @@ void MainWindow::init() {
     }
     statements.clear();
     ui->treeDisplay->clear();
+    ui->resultBrowser->clear();
+
+    stmtIter = rawStatements.begin();
+}
+
+void MainWindow::info(const std::string &infoMsg) {
+    QMessageBox::information(this, "Information", QString::fromStdString(infoMsg), QMessageBox::Ok);
+}
+
+void MainWindow::help() {
+    std::string infoMsg;
+    infoMsg += "Command List: \n";
+    infoMsg += "RUN: run the code.\n";
+    infoMsg += "LIST: not supported here, do nothing.\n";
+    infoMsg += "CLEAR: clear the code and the result.\n";
+    infoMsg += "LOAD: load code from disk.\n";
+    infoMsg += "HELP: get help tips.\n";
+    infoMsg += "INPUT: input a variable. Format: INPUT [variable_name]. e.g., INPUT x\n";
+    infoMsg += "PRINT: print the value of given variable. Format: PRINT [variable_name]. e.g PRINT x\n";
+    infoMsg += "QUIT: quit QBasic immediately.";
+
+    info(infoMsg);
 }
 
 void MainWindow::run() {
-    try {
+    lastRunningState = runningState;
+    runningState = RUNNING;
+    if (lastRunningState != INPUT)
         init();
-        for (auto rawStmt: rawStatements) {
+
+    try {
+        for (; stmtIter != rawStatements.end();) {
+            auto rawStmt = *stmtIter;
             auto tokens = lexer->scan(rawStmt->srcCode);
             for (auto token: tokens) {
                 std::cout << "read token: " << token << std::endl;
             }
+
+            ++stmtIter;
+
+            // Parse and add stmt to the list.
             auto stmt = parser->parse(rawStmt->lineno, rawStmt->srcCode, tokens);
             addStatement(stmt);
+
+            // Run the stmt.
+            stmt->run(this, ui->resultBrowser);
+
+            // Print the syntax tree of the stmt.
             std::string str;
             stmt->print(str);
             ui->treeDisplay->append(QString::fromStdString(str));
+
+            // Special judge, if input, then break, until input complete.
+            if (typeid(*stmt) == typeid(statement::InputStatement))
+                break;
         }
-    } catch (std::exception e) {
+    } catch (const std::string &errorMsg) {
+        std::cerr << errorMsg << std::endl;
+    }
+    catch (std::exception e) {
         std::cerr << e.what() << std::endl;
     } catch (const char *errorMsg) {
         std::cerr << errorMsg << std::endl;
         error(errorMsg);
+    }
+
+    if (stmtIter == rawStatements.end()) {
+        lastRunningState = RUNNING;
+        runningState = END;
     }
 }
 
@@ -147,6 +196,35 @@ void MainWindow::refreshCode() {
         code.append(rawStmt->toString() + "\n");
     }
     ui->codeDisplay->setText(QString::fromStdString(code));
+}
+
+void MainWindow::clear() {
+    for (auto rawStmt: rawStatements) {
+        delete rawStmt;
+    }
+    rawStatements.clear();
+    for (auto stmt: statements) {
+        delete stmt;
+    }
+    statements.clear();
+
+    ui->codeDisplay->clear();
+    ui->treeDisplay->clear();
+    ui->resultBrowser->clear();
+
+    tenv->clear();
+    venv->clear();
+}
+
+void MainWindow::gotoLine(int lineno) {
+    auto tmpIter = rawStatements.begin();
+    for (; tmpIter != rawStatements.end(); ++tmpIter) {
+        if ((*tmpIter)->lineno == lineno) {
+            stmtIter = tmpIter;
+            return;
+        }
+    }
+    throw "Use non-existent line number!";
 }
 
 void MainWindow::load() {
@@ -162,8 +240,8 @@ void MainWindow::load() {
     std::ifstream file(fileName);
     std::string line;
     while (std::getline(file, line)) {
-        if (file.eof()) break;
         if (line.empty()) continue;
+        std::cout << "read line: " << line << std::endl;
         try {
             RawStatement *rawStmt = RawStatement::fromCmdline(line);
             addRawStatement(rawStmt);
@@ -174,9 +252,14 @@ void MainWindow::load() {
             std::cerr << errorMsg << std::endl;
             error(errorMsg);
         }
+        if (file.eof()) break;
     }
     refreshCode();
     file.close();
+}
+
+void MainWindow::end() {
+    stmtIter = rawStatements.end();
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {
@@ -186,13 +269,17 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
             auto cmdline = ui->cmdLineEdit->text().trimmed().toStdString();
             if (cmdline.size() == 0) return;
 
-            if (runningState == INPUTING) {
+            if (runningState == INPUT) {
                 inputValue = StringUtils::getAfter(cmdline, "? ");
                 inputCv.notify_all();
                 inputWorker->join();
                 delete inputWorker;
                 inputWorker = nullptr;
-                runningState = RUNNING;
+                if (lastRunningState == RUNNING) {
+                    run();
+                } else {
+                    runningState = lastRunningState;
+                }
                 goto clear;
             }
 
@@ -204,6 +291,9 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
                 RawStatement *rawStmt = RawStatement::fromCmdline(cmdline);
                 addRawStatement(rawStmt);
                 refreshCode();
+            }
+            catch (const std::string &errorMsg) {
+                std::cerr << errorMsg << std::endl;
             }
             catch (std::exception e) {
                 std::cerr << e.what() << std::endl;
@@ -220,9 +310,9 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
 
 void MainWindow::print(const std::string &cmdline) {
     std::string var = StringUtils::getAfter(cmdline, "PRINT ");
-    env::valueType *typePtr = tenv->look(var);
+    env::ValueType *typePtr = tenv->look(var);
     if (typePtr != nullptr) {
-        env::valueType type = *typePtr;
+        env::ValueType type = *typePtr;
         env::Value value = *(venv->look(var));
         switch (type) {
             case env::INT:
@@ -234,19 +324,18 @@ void MainWindow::print(const std::string &cmdline) {
             default:
                 break;
         }
-
+    } else {
+        throw "Use undefined variable!";
     }
     return;
 }
 
-void MainWindow::inputInBackGround(const std::string &cmdline) {
+void MainWindow::inputInBackGround(const std::string &var) {
     static std::regex intFmt("([1-9][0-9]*)|0");
     static std::regex strFmt("\".*\"");
-    std::string var = StringUtils::getAfter(cmdline, "INPUT ");
     std::unique_lock <std::mutex> lock(mtx);
     inputCv.wait(lock);
 
-    std::cout << "inputValue: " << inputValue << std::endl;
     if (std::regex_match(inputValue, intFmt)) {
         tenv->enter(var, env::INT);
         std::cout << tenv->look(var) << std::endl;
@@ -258,13 +347,15 @@ void MainWindow::inputInBackGround(const std::string &cmdline) {
     inputValue.clear();
 }
 
-void MainWindow::input(const std::string &cmdline) {
-    mtx.lock();
-    if (runningState == INPUTING) return;
-    runningState = INPUTING;
-    mtx.unlock();
+void MainWindow::input(const std::string &var) {
+    {
+        std::lock_guard <std::mutex> lock(mtx);
+        if (runningState == INPUT) return;
+        lastRunningState = runningState;
+        runningState = INPUT;
+    }
     ui->cmdLineEdit->setText("? ");
-    inputWorker = new std::thread(&MainWindow::inputInBackGround, this, cmdline);
+    inputWorker = new std::thread(&MainWindow::inputInBackGround, this, var);
 }
 
 bool MainWindow::isBuiltinCmd(const std::string &cmdline) const {
@@ -299,15 +390,17 @@ void MainWindow::runBuiltinCmd(const std::string &cmdline) {
     }
 
     if (StringUtils::startWith(cmdline, "INPUT")) {
-        input(cmdline);
+        input(StringUtils::getAfter(cmdline, "INPUT "));
         return;
     }
 
     if (cmdline == "CLEAR") {
+        clear();
         return;
     }
 
     if (cmdline == "HELP") {
+        help();
         return;
     }
 }
