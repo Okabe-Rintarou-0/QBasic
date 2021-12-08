@@ -134,11 +134,29 @@ namespace statement {
         ~GotoStatement() = default;
     };
 
+    class LetStatement : public Statement {
+    public:
+
+        LetStatement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : Statement(lineno, srcCode,
+                                                                                                 syntaxTree) {}
+
+        ~LetStatement() = default;
+    };
+
+    class IfThenStatement : public Statement {
+    public:
+
+        IfThenStatement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : Statement(lineno, srcCode,
+                                                                                                    syntaxTree) {}
+
+        ~IfThenStatement() = default;
+    };
+
     class EndStatement : public Statement {
     public:
 
         EndStatement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : Statement(lineno, srcCode,
-                                                                                                  syntaxTree) {}
+                                                                                                 syntaxTree) {}
 
         ~EndStatement() = default;
     };

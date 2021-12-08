@@ -148,9 +148,9 @@ void MainWindow::run() {
     if (lastRunningState != INPUT)
         init();
 
-    try {
-        for (; stmtIter != rawStatements.end();) {
-            auto rawStmt = *stmtIter;
+    for (; stmtIter != rawStatements.end();) {
+        auto rawStmt = *stmtIter;
+        try {
             auto tokens = lexer->scan(rawStmt->srcCode);
             for (auto token: tokens) {
                 std::cout << "read token: " << token << std::endl;
@@ -160,7 +160,6 @@ void MainWindow::run() {
 
             // Parse and add stmt to the list.
             auto stmt = parser->parse(rawStmt->lineno, rawStmt->srcCode, tokens);
-            addStatement(stmt);
 
             // Run the stmt.
             stmt->run(this, ui->resultBrowser);
@@ -173,15 +172,16 @@ void MainWindow::run() {
             // Special judge, if input, then break, until input complete.
             if (typeid(*stmt) == typeid(statement::InputStatement))
                 break;
+        } catch (const std::string &errorMsg) {
+            std::cerr << errorMsg << std::endl;
         }
-    } catch (const std::string &errorMsg) {
-        std::cerr << errorMsg << std::endl;
-    }
-    catch (std::exception e) {
-        std::cerr << e.what() << std::endl;
-    } catch (const char *errorMsg) {
-        std::cerr << errorMsg << std::endl;
-        error(errorMsg);
+        catch (std::exception e) {
+            std::cerr << e.what() << std::endl;
+        } catch (const char *errorMsg) {
+            std::cerr << errorMsg << std::endl;
+            error(errorMsg);
+            ui->treeDisplay->append(QString::number(rawStmt->lineno).append(" Error\n"));
+        }
     }
 
     if (stmtIter == rawStatements.end()) {
@@ -211,9 +211,13 @@ void MainWindow::clear() {
     ui->codeDisplay->clear();
     ui->treeDisplay->clear();
     ui->resultBrowser->clear();
+    ui->cmdLineEdit->clear();
 
     tenv->clear();
     venv->clear();
+
+    lastRunningState = runningState;
+    runningState = END;
 }
 
 void MainWindow::gotoLine(int lineno) {
@@ -221,6 +225,18 @@ void MainWindow::gotoLine(int lineno) {
     for (; tmpIter != rawStatements.end(); ++tmpIter) {
         if ((*tmpIter)->lineno == lineno) {
             stmtIter = tmpIter;
+            return;
+        }
+    }
+    throw "Use non-existent line number!";
+}
+
+void MainWindow::deleteLine(int lineno) {
+    auto tmpIter = rawStatements.begin();
+    for (; tmpIter != rawStatements.end(); ++tmpIter) {
+        if ((*tmpIter)->lineno == lineno) {
+            rawStatements.erase(tmpIter);
+            refreshCode();
             return;
         }
     }
@@ -236,6 +252,8 @@ void MainWindow::load() {
     if (npos != std::string::npos) {
         lastLoadedDir = fileName.substr(0, npos);
     }
+
+    clear();
 
     std::ifstream file(fileName);
     std::string line;
@@ -360,12 +378,13 @@ void MainWindow::input(const std::string &var) {
 
 bool MainWindow::isBuiltinCmd(const std::string &cmdline) const {
     static std::regex pattern(
-            "LIST|RUN|LOAD|(PRINT [a-zA-Z][a-zA-Z0-9]*)|(INPUT [a-zA-Z][a-zA-Z0-9]*)|CLEAR|HELP|QUIT");
+            "([1-9][0-9]*)|LIST|RUN|LOAD|(PRINT [a-zA-Z][a-zA-Z0-9]*)|(INPUT [a-zA-Z][a-zA-Z0-9]*)|CLEAR|HELP|QUIT");
     return std::regex_match(cmdline, pattern);
 }
 
 void MainWindow::runBuiltinCmd(const std::string &cmdline) {
     std::cout << "run: " << cmdline << std::endl;
+
     if (cmdline == "LIST") {
         return;
     }
@@ -403,4 +422,6 @@ void MainWindow::runBuiltinCmd(const std::string &cmdline) {
         help();
         return;
     }
+
+    deleteLine(std::atoi(cmdline.c_str()));
 }

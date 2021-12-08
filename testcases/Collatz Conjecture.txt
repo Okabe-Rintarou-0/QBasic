@@ -1,0 +1,11 @@
+1 REM Collatz Conjecture
+2 INPUT x
+3 PRINT x
+4 IF x = 1 THEN 11
+5 LET tmp = x - (x/2) *2
+6 IF tmp <> 0 THEN 9
+7 LET x = x /2
+8 GOTO 3
+9 LET x = 3 *x +1
+10 GOTO 3
+11 END

@@ -90,6 +90,8 @@ public:
 
     void gotoLine(int lineno);
 
+    void deleteLine(int lineno);
+
     void load();
 
     void help();

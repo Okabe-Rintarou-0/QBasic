@@ -1,0 +1,7 @@
+1 REM PRINT n
+2 INPUT n
+3 LET x = 1
+4 PRINT x
+5 LET x = x + 1
+6 IF x <= n THEN 4
+7 END
