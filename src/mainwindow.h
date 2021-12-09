@@ -89,7 +89,7 @@ public:
     void gotoLine(int lineno);
 
     void deleteLine(int lineno);
-
+    
     void parseAndPrint();
 
     void load();
