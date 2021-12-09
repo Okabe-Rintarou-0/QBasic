@@ -13,13 +13,13 @@ public:
     }
 
     static inline void
-    split(std::string_view target, std::vector <std::string> &results, int maxNum, char seperate = ' ') {
+    split(std::string_view target, std::vector <std::string> &results, int maxNum, char separate = ' ') {
         int cursor = 0;
         int subStrNo = 1;
         int len = target.size();
         std::cout << subStrNo << std::endl;
         while (subStrNo < maxNum && cursor < len) {
-            auto pos = target.find(seperate, cursor);
+            auto pos = target.find(separate, cursor);
             if (pos != std::string::npos) {
                 results.emplace_back(target.substr(cursor, (pos - cursor)));
                 cursor = pos + 1;

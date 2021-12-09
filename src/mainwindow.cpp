@@ -34,18 +34,6 @@ MainWindow::~MainWindow() {
     delete ui;
 }
 
-void MainWindow::addStatement(Statement *stmt) {
-    int tgtLineno = stmt->getLineno();
-    auto it = statements.begin();
-    for (; it != statements.end(); ++it) {
-        int curLineno = (*it)->getLineno();
-        if (curLineno > tgtLineno) {
-            break;
-        }
-    }
-    statements.insert(it, stmt);
-}
-
 void MainWindow::controlCmdlineInput() {
     {
         std::lock_guard <std::mutex> lock(mtx);
@@ -120,7 +108,7 @@ void MainWindow::init() {
     ui->treeDisplay->clear();
     ui->resultBrowser->clear();
 
-    stmtIter = rawStatements.begin();
+    stmtIdx = 0;
 }
 
 void MainWindow::info(const std::string &infoMsg) {
@@ -142,49 +130,78 @@ void MainWindow::help() {
     info(infoMsg);
 }
 
-void MainWindow::run() {
-    lastRunningState = runningState;
-    runningState = RUNNING;
-    if (lastRunningState != INPUT)
-        init();
-
-    try {
-        for (; stmtIter != rawStatements.end();) {
-            auto rawStmt = *stmtIter;
+void MainWindow::parseAndPrint() {
+    for (auto rawStmt:rawStatements) {
+        try {
             auto tokens = lexer->scan(rawStmt->srcCode);
             for (auto token: tokens) {
                 std::cout << "read token: " << token << std::endl;
             }
 
-            ++stmtIter;
-
-            // Parse and add stmt to the list.
+            // Parse stmt.
             auto stmt = parser->parse(rawStmt->lineno, rawStmt->srcCode, tokens);
-            addStatement(stmt);
 
-            // Run the stmt.
-            stmt->run(this, ui->resultBrowser);
+            stmt->checkValidation(this);
 
             // Print the syntax tree of the stmt.
             std::string str;
             stmt->print(str);
             ui->treeDisplay->append(QString::fromStdString(str));
 
+            // Add stmt.
+            statements.push_back(stmt);
+
+        } catch (const std::string &errorMsg) {
+            std::cerr << errorMsg << std::endl;
+        }
+        catch (std::exception e) {
+            std::cerr << e.what() << std::endl;
+        } catch (const char *errorMsg) {
+            std::cerr << errorMsg << std::endl;
+            error(errorMsg);
+            ui->treeDisplay->append(QString::number(rawStmt->lineno).append(" Error\n"));
+            // If invalid, add nullptr.
+            statements.push_back(nullptr);
+        }
+    }
+}
+
+void MainWindow::run() {
+    lastRunningState = runningState;
+    runningState = RUNNING;
+    if (lastRunningState != INPUT)
+        init();
+
+    parseAndPrint();
+
+    int len = statements.size();
+    for (; stmtIdx < len;) {
+        auto stmt = statements[stmtIdx];
+
+        try {
+            ++stmtIdx;
+
+            // stmt == nullptr means it's invalid.
+            if (stmt == nullptr) continue;
+
+            // Run the stmt.
+            stmt->run(this, ui->resultBrowser);
+
             // Special judge, if input, then break, until input complete.
             if (typeid(*stmt) == typeid(statement::InputStatement))
                 break;
+        } catch (const std::string &errorMsg) {
+            std::cerr << errorMsg << std::endl;
         }
-    } catch (const std::string &errorMsg) {
-        std::cerr << errorMsg << std::endl;
-    }
-    catch (std::exception e) {
-        std::cerr << e.what() << std::endl;
-    } catch (const char *errorMsg) {
-        std::cerr << errorMsg << std::endl;
-        error(errorMsg);
+        catch (std::exception e) {
+            std::cerr << e.what() << std::endl;
+        } catch (const char *errorMsg) {
+            std::cerr << errorMsg << std::endl;
+            error(errorMsg);
+        }
     }
 
-    if (stmtIter == rawStatements.end()) {
+    if (stmtIdx == len) {
         lastRunningState = RUNNING;
         runningState = END;
     }
@@ -204,23 +221,38 @@ void MainWindow::clear() {
     }
     rawStatements.clear();
     for (auto stmt: statements) {
-        delete stmt;
+        if (stmt) delete stmt;
     }
     statements.clear();
 
     ui->codeDisplay->clear();
     ui->treeDisplay->clear();
     ui->resultBrowser->clear();
+    ui->cmdLineEdit->clear();
 
     tenv->clear();
     venv->clear();
+
+    lastRunningState = runningState;
+    runningState = END;
 }
 
 void MainWindow::gotoLine(int lineno) {
-    auto tmpIter = rawStatements.begin();
-    for (; tmpIter != rawStatements.end(); ++tmpIter) {
+    int len = statements.size();
+    for (int i = 0; i < len; ++i) {
+        if (statements[i]->getLineno() == lineno) {
+            stmtIdx = i;
+            return;
+        }
+    }
+    throw "Use non-existent line number!";
+}
+
+void MainWindow::deleteLine(int lineno) {
+    for (auto tmpIter = rawStatements.begin(); tmpIter != rawStatements.end(); ++tmpIter) {
         if ((*tmpIter)->lineno == lineno) {
-            stmtIter = tmpIter;
+            rawStatements.erase(tmpIter);
+            refreshCode();
             return;
         }
     }
@@ -236,6 +268,8 @@ void MainWindow::load() {
     if (npos != std::string::npos) {
         lastLoadedDir = fileName.substr(0, npos);
     }
+
+    clear();
 
     std::ifstream file(fileName);
     std::string line;
@@ -259,7 +293,7 @@ void MainWindow::load() {
 }
 
 void MainWindow::end() {
-    stmtIter = rawStatements.end();
+    stmtIdx = statements.size();
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {
@@ -360,12 +394,13 @@ void MainWindow::input(const std::string &var) {
 
 bool MainWindow::isBuiltinCmd(const std::string &cmdline) const {
     static std::regex pattern(
-            "LIST|RUN|LOAD|(PRINT [a-zA-Z][a-zA-Z0-9]*)|(INPUT [a-zA-Z][a-zA-Z0-9]*)|CLEAR|HELP|QUIT");
+            "([1-9][0-9]*)|LIST|RUN|LOAD|(PRINT [a-zA-Z][a-zA-Z0-9]*)|(INPUT [a-zA-Z][a-zA-Z0-9]*)|CLEAR|HELP|QUIT");
     return std::regex_match(cmdline, pattern);
 }
 
 void MainWindow::runBuiltinCmd(const std::string &cmdline) {
     std::cout << "run: " << cmdline << std::endl;
+
     if (cmdline == "LIST") {
         return;
     }
@@ -403,4 +438,6 @@ void MainWindow::runBuiltinCmd(const std::string &cmdline) {
         help();
         return;
     }
+
+    deleteLine(std::atoi(cmdline.c_str()));
 }

@@ -1,0 +1,13 @@
+1 REM let error
+3 LET x = 
+2 LET x = 1 + 3+
+3 LET x = 3**
+4 LET x = 3/0
+5 LET x = 1 1 +
+6 LET x = 1 */ 2
+7 LET x = y
+8 LET x = )
+9 LET x = ()
+10 LET x = ((1+3)
+11 LET x = (1+3))
+12 LET x = (3

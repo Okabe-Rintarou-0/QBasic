@@ -4,7 +4,7 @@
 #include <QMainWindow>
 #include <QKeyEvent>
 #include <memory>
-#include <list>
+#include <vector>
 #include <mutex>
 #include <thread>
 #include <condition_variable>
@@ -66,17 +66,15 @@ public:
 
     std::condition_variable inputCv;
 
-    std::list<RawStatement *>::const_iterator stmtIter;
+    int stmtIdx;
 
-    std::list<RawStatement *> rawStatements;
+    std::vector<RawStatement *> rawStatements;
 
-    std::list<Statement *> statements;
+    std::vector<Statement *> statements;
 
     std::unique_ptr <Lexer> lexer;
 
     std::unique_ptr <Parser> parser;
-
-    void addStatement(Statement *stmt);
 
     void addRawStatement(RawStatement *rawStmt);
 
@@ -89,6 +87,10 @@ public:
     void controlCmdlineInput();
 
     void gotoLine(int lineno);
+
+    void deleteLine(int lineno);
+
+    void parseAndPrint();
 
     void load();
 

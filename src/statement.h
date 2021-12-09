@@ -61,6 +61,10 @@ namespace statement {
             return std::to_string(lineno) + " " + srcCode;
         }
 
+        inline void checkValidation(MainWindow *mainwindow) const {
+            syntaxTree->checkValidation(mainwindow);
+        }
+
         virtual void run(MainWindow *mainWindow, QTextBrowser *resultDisplay) {
             syntaxTree->run(mainWindow, resultDisplay);
         }
@@ -134,11 +138,29 @@ namespace statement {
         ~GotoStatement() = default;
     };
 
+    class LetStatement : public Statement {
+    public:
+
+        LetStatement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : Statement(lineno, srcCode,
+                                                                                                 syntaxTree) {}
+
+        ~LetStatement() = default;
+    };
+
+    class IfThenStatement : public Statement {
+    public:
+
+        IfThenStatement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : Statement(lineno, srcCode,
+                                                                                                    syntaxTree) {}
+
+        ~IfThenStatement() = default;
+    };
+
     class EndStatement : public Statement {
     public:
 
         EndStatement(int lineno, const std::string &srcCode, SyntaxTree *syntaxTree) : Statement(lineno, srcCode,
-                                                                                                  syntaxTree) {}
+                                                                                                 syntaxTree) {}
 
         ~EndStatement() = default;
     };

@@ -38,6 +38,7 @@ namespace lexer {
 
     const std::string Lexer::blankFmt = "\\s+";
     const std::string Lexer::letFmt = "LET";
+    const std::string Lexer::ifFmt = "IF";
     const std::string Lexer::thenFmt = "THEN";
     const std::string Lexer::gotoFmt = "GOTO";
     const std::string Lexer::printFmt = "PRINT";
@@ -49,7 +50,7 @@ namespace lexer {
     const std::string Lexer::eqFmt = "=";
     const std::string Lexer::ltFmt = "\\<";
     const std::string Lexer::leFmt = "\\<=";
-    const std::string Lexer::neqFmt = "!=";
+    const std::string Lexer::neqFmt = "\\<\\>";
     const std::string Lexer::gtFmt = "\\>";
     const std::string Lexer::geFmt = "\\>=";
     const std::string Lexer::plusFmt = "\\+";
@@ -63,6 +64,7 @@ namespace lexer {
     std::vector <std::pair<std::string, parser::TokenType>> Lexer::fmtAndType = {
             {blankFmt,  parser::BLANK},
             {letFmt,    parser::LET},
+            {ifFmt,     parser::IF},
             {thenFmt,   parser::THEN},
             {gotoFmt,   parser::GOTO},
             {printFmt,  parser::PRINT},

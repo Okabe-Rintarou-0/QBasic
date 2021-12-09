@@ -14,6 +14,7 @@ namespace parser {
         INVALID = -1,
         BLANK,
         LET,
+        IF,
         THEN,
         GOTO,
         PRINT,
@@ -40,6 +41,7 @@ namespace parser {
     static std::unordered_map <TokenType, std::string> typeTable = {
             {INVALID, "INVALID"},
             {LET,     "LET"},
+            {IF,      "IF"},
             {THEN,    "THEN"},
             {GOTO,    "GOTO"},
             {PRINT,   "PRINT"},
@@ -63,6 +65,16 @@ namespace parser {
             {RPAREN,  "RPAREN"},
     };
 
+    static std::unordered_map<TokenType, int> prior = {
+            {INVALID, 0},
+            {LPAREN,  1},
+            {PLUS,    2},
+            {MINUS,   2},
+            {TIMES,   3},
+            {DIVIDE,  3},
+            {INDEX,   4}
+    };
+
     class Token {
     public:
         std::string tok;
@@ -75,7 +87,7 @@ namespace parser {
         }
     };
 
-    inline std::ostream &operator<<(std::ostreams &os, const Token &token) {
+    inline std::ostream &operator<<(std::ostream &os, const Token &token) {
         return os << "(" << token.tok << ", " << typeTable[token.type] << ")";
     }
 
@@ -86,6 +98,14 @@ namespace parser {
         statement::StatementType getStatementType(const std::vector <Token> &tokens, std::string &errorMsg);
 
         statement::Statement *parse(int lineno, const std::string &srcCode, const std::vector <Token> &tokens);
+
+    private:
+        syntax::Exp *parseArithmetic(const std::vector <Token> &tokens) const;
+
+        syntax::LogicalExp *parseLogical(const std::vector <Token> &tokens) const;
+
+        // RPN namely reverse polish notation.
+        void computeRPN(const std::vector <Token> &tokens, std::vector <Token> &rpn) const;
     };
 }
 

@@ -22,6 +22,23 @@ namespace syntax {
         VOID
     };
 
+    enum ArithmeticOp {
+        PLUS_OP,
+        MINUS_OP,
+        TIMES_OP,
+        DIVIDE_OP,
+        INDEX_OP
+    };
+
+    enum LogicOp {
+        EQ,
+        NEQ,
+        GT,
+        GE,
+        LT,
+        LE
+    };
+
     class ExpVal {
     public:
         ExpVal() = default;
@@ -48,6 +65,8 @@ namespace syntax {
         virtual ExpVal run(MainWindow *mainWindow, QTextBrowser *resultDisplay) = 0;
 
         virtual void clear() = 0;
+
+        virtual void checkValidation(MainWindow *mainWindow) { Q_UNUSED(mainWindow); }
 
         virtual ~Exp() = default;
     };
@@ -139,6 +158,11 @@ namespace syntax {
             str += this->symbol;
         }
 
+        void checkValidation(MainWindow *mainWindow) override {
+            if (mainWindow->tenv->look(symbol) == nullptr)
+                throw "Undefined variable!";
+        }
+
         inline ExpVal run(MainWindow *mainWindow, QTextBrowser *resultDisplay) override {
             Q_UNUSED(resultDisplay);
             env::ValueType *valueTypePtr = mainWindow->tenv->look(symbol);
@@ -150,7 +174,7 @@ namespace syntax {
                 else
                     return ExpVal(value->getString());
             }
-            return ExpVal::voidValue();
+            throw "Use undefined variable!";
         }
 
         inline std::string getSymbol() const { return symbol; }
@@ -158,21 +182,23 @@ namespace syntax {
 
     class PrintExp : public Exp {
     private:
-        VarExp *var;
+        Exp *exp;
 
     public:
-        PrintExp(VarExp *var) : var(var) {}
+        PrintExp(Exp *exp) : exp(exp) {}
 
         inline void clear() override {
-            var->clear();
-            delete var;
+            exp->clear();
+            delete exp;
         }
 
         inline void print(std::string &str, int depth) override {
             indent(str, depth);
             str += "PRINT\n";
-            var->print(str, depth + 1);
+            exp->print(str, depth + 1);
         }
+
+        void checkValidation(MainWindow *mainWindow) override;
 
         ExpVal run(MainWindow *mainWindow, QTextBrowser *resultDisplay) override;
     };
@@ -208,6 +234,12 @@ namespace syntax {
             delete lineno;
         }
 
+        inline void checkValidation(MainWindow *mainWindow) override {
+            Q_UNUSED(mainWindow);
+            if (lineno->getValue() <= 0 || lineno->getValue() > 1000000)
+                throw "Invalid line number!";
+        }
+
         inline void print(std::string &str, int depth) override {
             indent(str, depth);
             str += "GOTO\n";
@@ -227,6 +259,142 @@ namespace syntax {
             indent(str, depth);
             str += "END";
         }
+
+        ExpVal run(MainWindow *mainWindow, QTextBrowser *resultDisplay) override;
+    };
+
+    class ArithmeticExp : public Exp {
+    private:
+        ArithmeticOp op;
+        Exp *left, *right;
+
+        ArithmeticExp(ArithmeticOp op, Exp *left, Exp *right) : op(op), left(left), right(right) {}
+
+    public:
+        static inline ArithmeticExp *plusExp(Exp *left, Exp *right) {
+            return new ArithmeticExp(PLUS_OP, left, right);
+        }
+
+        static inline ArithmeticExp *minusExp(Exp *left, Exp *right) {
+            return new ArithmeticExp(MINUS_OP, left, right);
+        }
+
+        static inline ArithmeticExp *timesExp(Exp *left, Exp *right) {
+            return new ArithmeticExp(TIMES_OP, left, right);
+        }
+
+        static inline ArithmeticExp *divideExp(Exp *left, Exp *right) {
+            return new ArithmeticExp(DIVIDE_OP, left, right);
+        }
+
+        static inline ArithmeticExp *indexExp(Exp *left, Exp *right) {
+            return new ArithmeticExp(INDEX_OP, left, right);
+        }
+
+        inline void clear() override {
+            left->clear();
+            right->clear();
+            delete left;
+            delete right;
+        }
+
+        void checkValidation(MainWindow *mainWindow) override;
+
+        void print(std::string &str, int depth) override;
+
+        ExpVal run(MainWindow *mainWindow, QTextBrowser *resultDisplay) override;
+    };
+
+    class LetExp : public Exp {
+    private:
+        VarExp *var;
+        Exp *val;
+
+    public:
+        LetExp(VarExp *var, Exp *val) : var(var), val(val) {}
+
+        inline void clear() override {
+            var->clear();
+            val->clear();
+            delete var;
+            delete val;
+        }
+
+        void checkValidation(MainWindow *mainWindow) override;
+
+        inline void print(std::string &str, int depth) override {
+            indent(str, depth);
+            str += "LET =\n";
+            var->print(str, depth + 1);
+            str += '\n';
+            val->print(str, depth + 1);
+        }
+
+        ExpVal run(MainWindow *mainWindow, QTextBrowser *resultDisplay) override;
+    };
+
+    class LogicalExp : public Exp {
+    private:
+        LogicOp op;
+        Exp *left, *right;
+    public:
+        LogicalExp(LogicOp op, Exp *left, Exp *right) : op(op), left(left), right(right) {}
+
+        static inline LogicalExp *eqExp(Exp *left, Exp *right) {
+            return new LogicalExp(EQ, left, right);
+        }
+
+        static inline LogicalExp *neqExp(Exp *left, Exp *right) {
+            return new LogicalExp(NEQ, left, right);
+        }
+
+        static inline LogicalExp *gtExp(Exp *left, Exp *right) {
+            return new LogicalExp(GT, left, right);
+        }
+
+        static inline LogicalExp *geExp(Exp *left, Exp *right) {
+            return new LogicalExp(GE, left, right);
+        }
+
+        static inline LogicalExp *ltExp(Exp *left, Exp *right) {
+            return new LogicalExp(LT, left, right);
+        }
+
+        static inline LogicalExp *leExp(Exp *left, Exp *right) {
+            return new LogicalExp(LE, left, right);
+        }
+
+        inline void clear() override {
+            left->clear();
+            right->clear();
+            delete left;
+            delete right;
+        }
+
+        void checkValidation(MainWindow *mainWindow) override;
+
+        void print(std::string &str, int depth) override;
+
+        ExpVal run(MainWindow *mainWindow, QTextBrowser *resultDisplay) override;
+    };
+
+    class IfThenExp : public Exp {
+    private:
+        LogicalExp *test;
+        IntExp *lineno;
+    public:
+        IfThenExp(LogicalExp *test, IntExp *lineno) : test(test), lineno(lineno) {}
+
+        inline void clear() override {
+            test->clear();
+            lineno->clear();
+            delete test;
+            delete lineno;
+        }
+
+        void checkValidation(MainWindow *mainWindow) override;
+
+        void print(std::string &str, int depth) override;
 
         ExpVal run(MainWindow *mainWindow, QTextBrowser *resultDisplay) override;
     };
@@ -251,6 +419,10 @@ namespace syntax {
         inline void clear() {
             root->clear();
             delete root;
+        }
+
+        inline void checkValidation(MainWindow *mainwindow) {
+            root->checkValidation(mainwindow);
         }
 
     private:

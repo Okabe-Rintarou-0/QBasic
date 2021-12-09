@@ -1,0 +1,5 @@
+1 REM guess
+2 INPUT y
+3 IF y <> 50 THEN 2
+4 PRINT y
+5 END

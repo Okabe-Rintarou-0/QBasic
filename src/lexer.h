@@ -32,6 +32,7 @@ namespace lexer {
 
         static const std::string blankFmt;
         static const std::string letFmt;
+        static const std::string ifFmt;
         static const std::string thenFmt;
         static const std::string gotoFmt;
         static const std::string printFmt;
