@@ -47,6 +47,9 @@ namespace syntax {
 //            std::cout << "check: " << rightVal.iVal << std::endl;
         if (op == DIVIDE_OP && rightVal.iVal == 0)
             throw "Divided by zero!";
+        // 0 ** 0, 0 ** -1 is no valid, but 0 ** 1 is valid.
+        if (op == INDEX_OP && leftVal.iVal == 0 && rightVal.iVal <= 0)
+            throw "Invalid index operation!";
     }
 
     void ArithmeticExp::print(std::string &str, int depth) {
@@ -77,8 +80,14 @@ namespace syntax {
     ExpVal ArithmeticExp::run(MainWindow *mainWindow, QTextBrowser *resultDisplay) {
         ExpVal leftVal = left->run(mainWindow, resultDisplay);
         ExpVal rightVal = right->run(mainWindow, resultDisplay);
+
         if (leftVal.type != INT || rightVal.type != INT)
             throw "Arithmetic operation only supports int!";
+        if (op == DIVIDE_OP && rightVal.iVal == 0)
+            throw "Divided by zero!";
+        // 0 ** 0, 0 ** -1 is no valid, but 0 ** 1 is valid.
+        if (op == INDEX_OP && leftVal.iVal == 0 && rightVal.iVal <= 0)
+            throw "Invalid index operation!";
 
         switch (op) {
             case PLUS_OP:

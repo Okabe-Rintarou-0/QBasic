@@ -19,6 +19,7 @@ namespace lexer {
                 ++cur;
             } else {
                 std::string token = code.substr(begin, lastTok - begin + 1);
+                if (lastType == parser::INVALID) throw "Invalid tokens!";
                 std::cout << "read token: " << token << std::endl;
                 if (lastType != parser::BLANK) {
                     tokens.push_back(parser::Token::makeToken(token, lastType));
@@ -28,6 +29,7 @@ namespace lexer {
             }
         }
         std::cout << lastTok << " " << begin << std::endl;
+        if (lastType == parser::INVALID) throw "Invalid tokens!";
         if (lastTok >= begin && lastTok < len) {
             std::string token = code.substr(begin, lastTok - begin + 1);
             std::cout << "read token: " << token << std::endl;
@@ -46,7 +48,7 @@ namespace lexer {
     const std::string Lexer::endFmt = "END";
     const std::string Lexer::inputFmt = "INPUT";
     const std::string Lexer::idFmt = "[a-zA-Z][a-zA-Z0-9]*";
-    const std::string Lexer::intFmt = "[0-9]+";
+    const std::string Lexer::intFmt = "(\\-)?[0-9]+";
     const std::string Lexer::eqFmt = "=";
     const std::string Lexer::ltFmt = "\\<";
     const std::string Lexer::leFmt = "\\<=";

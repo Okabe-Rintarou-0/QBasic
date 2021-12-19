@@ -89,7 +89,9 @@ public:
     void gotoLine(int lineno);
 
     void deleteLine(int lineno);
-    
+
+    void highlight(int index);
+
     void parseAndPrint();
 
     void load();

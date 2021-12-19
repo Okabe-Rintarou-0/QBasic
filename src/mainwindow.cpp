@@ -237,6 +237,10 @@ void MainWindow::clear() {
     runningState = END;
 }
 
+void MainWindow::highlight(int index) {
+    QTextCursor cursor = ui->codeDisplay->textCursor();
+}
+
 void MainWindow::gotoLine(int lineno) {
     int len = statements.size();
     for (int i = 0; i < len; ++i) {
@@ -343,25 +347,9 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
 }
 
 void MainWindow::print(const std::string &cmdline) {
-    std::string var = StringUtils::getAfter(cmdline, "PRINT ");
-    env::ValueType *typePtr = tenv->look(var);
-    if (typePtr != nullptr) {
-        env::ValueType type = *typePtr;
-        env::Value value = *(venv->look(var));
-        switch (type) {
-            case env::INT:
-                ui->resultBrowser->append(QString::number(value.getInt()));
-                break;
-            case env::STRING:
-                ui->resultBrowser->append(QString::fromStdString(value.getString()));
-                break;
-            default:
-                break;
-        }
-    } else {
-        throw "Use undefined variable!";
-    }
-    return;
+    auto tokens = lexer->scan(cmdline);
+    auto stmt = parser->parse(0, cmdline, tokens);
+    stmt->run(this, ui->resultBrowser);
 }
 
 void MainWindow::inputInBackGround(const std::string &var) {
@@ -394,7 +382,7 @@ void MainWindow::input(const std::string &var) {
 
 bool MainWindow::isBuiltinCmd(const std::string &cmdline) const {
     static std::regex pattern(
-            "([1-9][0-9]*)|LIST|RUN|LOAD|(PRINT [a-zA-Z][a-zA-Z0-9]*)|(INPUT [a-zA-Z][a-zA-Z0-9]*)|CLEAR|HELP|QUIT");
+            "([1-9][0-9]*)|LIST|RUN|LOAD|(PRINT .*)|(INPUT [a-zA-Z][a-zA-Z0-9]*)|CLEAR|HELP|QUIT");
     return std::regex_match(cmdline, pattern);
 }
 
