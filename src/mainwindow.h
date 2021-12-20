@@ -90,7 +90,7 @@ public:
 
     void deleteLine(int lineno);
 
-    void highlight(int index);
+    void highlight(int index, QColor color);
 
     void parseAndPrint();
 

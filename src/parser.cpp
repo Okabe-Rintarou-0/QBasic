@@ -3,10 +3,9 @@
 #include <stack>
 
 namespace parser {
-    statement::StatementType Parser::getStatementType(const std::vector <Token> &tokens, std::string &errorMsg) {
+    statement::StatementType Parser::getStatementType(const std::vector <Token> &tokens) const {
         if (tokens.empty()) {
-            errorMsg = "Statement can't be empty!";
-            throw errorMsg;
+            throw "Statement can't be empty!";
         }
 
         if (tokens[0].type == REM && tokens.size() == 1) {
@@ -38,7 +37,7 @@ namespace parser {
             return statement::STMT_IF_THEN;
         }
 
-        return statement::STMT_INVALID;
+        throw "Invalid statement!";
     }
 
     void Parser::computeRPN(const std::vector <Token> &tokens, std::vector <Token> &rpn) const {
@@ -165,6 +164,7 @@ namespace parser {
     }
 
     syntax::LogicalExp *Parser::parseLogical(const std::vector <Token> &tokens) const {
+        std::cout << "called" << std::endl;
         int idx = -1;
         int len = tokens.size();
         for (int i = 0; i < len; ++i) {
@@ -178,6 +178,10 @@ namespace parser {
 
         std::vector <Token> leftTokens(tokens.begin(), tokens.begin() + idx);
         std::vector <Token> rightTokens(tokens.begin() + idx + 1, tokens.end());
+
+        std::cout << leftTokens.size() << "and " << rightTokens.size() << std::endl;
+
+        if (leftTokens.empty() || rightTokens.empty()) throw "Invalid if then exp!";
 
         syntax::Exp *left = parseArithmetic(leftTokens);
         syntax::Exp *right = parseArithmetic(rightTokens);
@@ -204,12 +208,15 @@ namespace parser {
         return nullptr;
     }
 
-    statement::Statement *Parser::parse(int lineno, const std::string &srcCode, const std::vector <Token> &tokens) {
-        std::string errorMsg;
-        auto stmtType = getStatementType(tokens, errorMsg);
-        if (stmtType == statement::STMT_INVALID) {
-            throw errorMsg;
-        }
+    int Parser::parseLineno(const Token &token) const {
+        if (token.type != parser::INT)
+            throw "Invalid line number! Should be integer.";
+        return std::atoi(token.tok.c_str());
+    }
+
+    statement::Statement *
+    Parser::parse(int lineno, const std::string &srcCode, const std::vector <Token> &tokens) const {
+        auto stmtType = getStatementType(tokens);
         statement::Statement *statement = nullptr;
         syntax::Exp *exp = nullptr;
         switch (stmtType) {
@@ -232,7 +239,7 @@ namespace parser {
                 break;
             }
             case statement::STMT_GOTO: {
-                int tgtLineno = std::atoi(tokens[1].tok.c_str());
+                int tgtLineno = parseLineno(tokens[1]);
                 exp = new syntax::GotoExp(new syntax::IntExp(tgtLineno));
                 statement = new statement::GotoStatement(lineno, srcCode, new syntax::SyntaxTree(exp));
                 break;
@@ -251,7 +258,7 @@ namespace parser {
             }
             case statement::STMT_IF_THEN: {
                 int len = tokens.size();
-                int tgtLineno = std::atoi(tokens[len - 1].tok.c_str());
+                int tgtLineno = parseLineno(tokens[len - 1]);
                 std::vector <Token> expTokens(tokens.begin() + 1, tokens.begin() + (len - 2));
                 exp = new syntax::IfThenExp(parseLogical(expTokens), new syntax::IntExp(tgtLineno));
                 statement = new statement::IfThenStatement(lineno, srcCode, new syntax::SyntaxTree(exp));

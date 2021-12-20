@@ -108,7 +108,18 @@ void MainWindow::init() {
     ui->treeDisplay->clear();
     ui->resultBrowser->clear();
 
+    venv->clear();
+    tenv->clear();
+
     stmtIdx = 0;
+
+    QTextCursor cursor = ui->codeDisplay->textCursor();
+    cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+    cursor.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+    QTextCharFormat charFormat;
+    charFormat.setBackground(Qt::white);
+    cursor.setCharFormat(charFormat);
+    cursor.clearSelection();
 }
 
 void MainWindow::info(const std::string &infoMsg) {
@@ -131,12 +142,16 @@ void MainWindow::help() {
 }
 
 void MainWindow::parseAndPrint() {
-    for (auto rawStmt:rawStatements) {
+    int len = rawStatements.size();
+    for (int i = 0; i < len; ++i) {
+        auto rawStmt = rawStatements[i];
         try {
             auto tokens = lexer->scan(rawStmt->srcCode);
-            for (auto token: tokens) {
-                std::cout << "read token: " << token << std::endl;
-            }
+//            for (auto token: tokens) {
+//                std::cout << "read token: " << token << std::endl;
+//            }
+
+            std::cout << "Parsing: " << rawStmt->srcCode << std::endl;
 
             // Parse stmt.
             auto stmt = parser->parse(rawStmt->lineno, rawStmt->srcCode, tokens);
@@ -160,24 +175,27 @@ void MainWindow::parseAndPrint() {
             std::cerr << errorMsg << std::endl;
             error(errorMsg);
             ui->treeDisplay->append(QString::number(rawStmt->lineno).append(" Error\n"));
+            highlight(i, Qt::gray);
             // If invalid, add nullptr.
             statements.push_back(nullptr);
         }
     }
 }
 
+///TODO: solve the problem when press RUN when INPUTTING
 void MainWindow::run() {
     lastRunningState = runningState;
     runningState = RUNNING;
-    if (lastRunningState != INPUT)
+    if (lastRunningState != INPUT) {
         init();
-
-    parseAndPrint();
+        parseAndPrint();
+    }
 
     int len = statements.size();
+    int curIdx;
     for (; stmtIdx < len;) {
         auto stmt = statements[stmtIdx];
-
+        curIdx = stmtIdx;
         try {
             ++stmtIdx;
 
@@ -198,6 +216,7 @@ void MainWindow::run() {
         } catch (const char *errorMsg) {
             std::cerr << errorMsg << std::endl;
             error(errorMsg);
+            highlight(curIdx, QColor(240, 128, 128));
         }
     }
 
@@ -237,8 +256,18 @@ void MainWindow::clear() {
     runningState = END;
 }
 
-void MainWindow::highlight(int index) {
+void MainWindow::highlight(int index, QColor color) {
     QTextCursor cursor = ui->codeDisplay->textCursor();
+    cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+    for (int i = 0; i < index; ++i) {
+        cursor.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor);
+        cursor.setPosition(cursor.position() + 1, QTextCursor::MoveAnchor);
+    }
+    cursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
+    QTextCharFormat charFormat;
+    charFormat.setBackground(color);
+    cursor.setCharFormat(charFormat);
+    cursor.clearSelection();
 }
 
 void MainWindow::gotoLine(int lineno) {

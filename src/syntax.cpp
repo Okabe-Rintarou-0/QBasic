@@ -39,17 +39,6 @@ namespace syntax {
     void ArithmeticExp::checkValidation(MainWindow *mainWindow) {
         left->checkValidation(mainWindow);
         right->checkValidation(mainWindow);
-        ExpVal leftVal = left->run(mainWindow, nullptr);
-        ExpVal rightVal = right->run(mainWindow, nullptr);
-        std::cout << "check: " << rightVal.iVal << std::endl;
-        if (leftVal.type != INT || rightVal.type != INT)
-            throw "Arithmetic operation only supports int!";
-//            std::cout << "check: " << rightVal.iVal << std::endl;
-        if (op == DIVIDE_OP && rightVal.iVal == 0)
-            throw "Divided by zero!";
-        // 0 ** 0, 0 ** -1 is no valid, but 0 ** 1 is valid.
-        if (op == INDEX_OP && leftVal.iVal == 0 && rightVal.iVal <= 0)
-            throw "Invalid index operation!";
     }
 
     void ArithmeticExp::print(std::string &str, int depth) {
@@ -137,10 +126,6 @@ namespace syntax {
     void LogicalExp::checkValidation(MainWindow *mainWindow) {
         left->checkValidation(mainWindow);
         right->checkValidation(mainWindow);
-        ExpVal leftVal = left->run(mainWindow, nullptr);
-        ExpVal rightVal = right->run(mainWindow, nullptr);
-        if (leftVal.type != INT || rightVal.type != INT)
-            throw "Logical operation only supports int!";
     }
 
     void LogicalExp::print(std::string &str, int depth) {

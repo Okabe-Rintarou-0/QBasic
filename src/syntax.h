@@ -159,8 +159,10 @@ namespace syntax {
         }
 
         void checkValidation(MainWindow *mainWindow) override {
-            if (mainWindow->tenv->look(symbol) == nullptr)
-                throw "Undefined variable!";
+            Q_UNUSED(mainWindow);
+            // just do nothing, since in this stage the variable won't have been defined.
+//            if (mainWindow->tenv->look(symbol) == nullptr)
+//                throw "Undefined variable!";
         }
 
         inline ExpVal run(MainWindow *mainWindow, QTextBrowser *resultDisplay) override {

@@ -1,0 +1,12 @@
+1 REM index_error
+2 LET x = 2**10
+3 LET y = 2**0
+4 LET z = 0**1
+5 LET k = 0**0
+6 LET q = 0**-1
+7 PRINT x
+8 PRINT y
+9 PRINT z
+10 PRINT k
+11 PRINT q
+12 END

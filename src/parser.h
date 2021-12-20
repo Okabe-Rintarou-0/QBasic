@@ -95,14 +95,16 @@ namespace parser {
     public:
         Parser() = default;
 
-        statement::StatementType getStatementType(const std::vector <Token> &tokens, std::string &errorMsg);
+        statement::StatementType getStatementType(const std::vector <Token> &tokens) const;
 
-        statement::Statement *parse(int lineno, const std::string &srcCode, const std::vector <Token> &tokens);
+        statement::Statement *parse(int lineno, const std::string &srcCode, const std::vector <Token> &tokens) const;
 
     private:
         syntax::Exp *parseArithmetic(const std::vector <Token> &tokens) const;
 
         syntax::LogicalExp *parseLogical(const std::vector <Token> &tokens) const;
+
+        int parseLineno(const Token &token) const;
 
         // RPN namely reverse polish notation.
         void computeRPN(const std::vector <Token> &tokens, std::vector <Token> &rpn) const;

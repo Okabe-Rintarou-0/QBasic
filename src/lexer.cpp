@@ -3,7 +3,7 @@
 
 namespace lexer {
     std::vector <parser::Token> Lexer::scan(const std::string &code) const {
-        std::cout << "start scan " << code << std::endl;
+//        std::cout << "start scan " << code << std::endl;
         std::vector <parser::Token> tokens;
         int begin = 0, lastTok = 0, cur = 0;
         int len = code.size();
@@ -11,7 +11,7 @@ namespace lexer {
         std::string lex;
         while (cur < len) {
             lex += code[cur];
-            std::cout << "cur lex: " << lex << std::endl;
+//            std::cout << "cur lex: " << lex << std::endl;
             auto tokenType = match(lex);
             if (tokenType != parser::INVALID) {
                 lastTok = cur;
@@ -20,7 +20,7 @@ namespace lexer {
             } else {
                 std::string token = code.substr(begin, lastTok - begin + 1);
                 if (lastType == parser::INVALID) throw "Invalid tokens!";
-                std::cout << "read token: " << token << std::endl;
+//                std::cout << "read token: " << token << std::endl;
                 if (lastType != parser::BLANK) {
                     tokens.push_back(parser::Token::makeToken(token, lastType));
                 }
@@ -28,11 +28,11 @@ namespace lexer {
                 lex.clear();
             }
         }
-        std::cout << lastTok << " " << begin << std::endl;
+//        std::cout << lastTok << " " << begin << std::endl;
         if (lastType == parser::INVALID) throw "Invalid tokens!";
         if (lastTok >= begin && lastTok < len) {
             std::string token = code.substr(begin, lastTok - begin + 1);
-            std::cout << "read token: " << token << std::endl;
+//            std::cout << "read token: " << token << std::endl;
             tokens.push_back(parser::Token::makeToken(token, lastType));
         }
         return tokens;
