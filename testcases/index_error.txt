@@ -3,7 +3,7 @@
 3 LET y = 2**0
 4 LET z = 0**1
 5 LET k = 0**0
-6 LET q = 0**-1
+6 LET q = 0**(-1)
 7 PRINT x
 8 PRINT y
 9 PRINT z

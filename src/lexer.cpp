@@ -2,38 +2,58 @@
 #include <iostream>
 
 namespace lexer {
-    std::vector <parser::Token> Lexer::scan(const std::string &code) const {
-//        std::cout << "start scan " << code << std::endl;
-        std::vector <parser::Token> tokens;
-        int begin = 0, lastTok = 0, cur = 0;
-        int len = code.size();
-        parser::TokenType lastType = parser::INVALID;
+    parser::Token Lexer::matchLongest(const std::string &code, int start) {
         std::string lex;
-        while (cur < len) {
-            lex += code[cur];
-//            std::cout << "cur lex: " << lex << std::endl;
-            auto tokenType = match(lex);
-            if (tokenType != parser::INVALID) {
-                lastTok = cur;
-                lastType = tokenType;
-                ++cur;
-            } else {
-                std::string token = code.substr(begin, lastTok - begin + 1);
-                if (lastType == parser::INVALID) throw "Invalid tokens!";
-//                std::cout << "read token: " << token << std::endl;
-                if (lastType != parser::BLANK) {
-                    tokens.push_back(parser::Token::makeToken(token, lastType));
-                }
-                lastTok = cur = begin = lastTok + 1;
-                lex.clear();
+        int matched_idx = start;
+        parser::TokenType matchedType;
+        int len = code.size();
+        for (int i = start; i < len; ++i) {
+            lex += code[i];
+            parser::TokenType thisType = match(lex);
+            if (thisType != parser::INVALID) {
+                matched_idx = i + 1;
+                matchedType = thisType;
             }
         }
-//        std::cout << lastTok << " " << begin << std::endl;
-        if (lastType == parser::INVALID) throw "Invalid tokens!";
-        if (lastTok >= begin && lastTok < len) {
-            std::string token = code.substr(begin, lastTok - begin + 1);
-//            std::cout << "read token: " << token << std::endl;
-            tokens.push_back(parser::Token::makeToken(token, lastType));
+        if (matched_idx == start) {
+            return parser::Token(code.substr(start, 1), parser::INVALID);
+        } else {
+            return parser::Token(code.substr(start, matched_idx - start), matchedType);
+        }
+    }
+
+    std::vector <parser::Token> Lexer::scan(const std::string &code) const {
+        std::cout << "start scan " << code << std::endl;
+        std::vector <parser::Token> tokens;
+        int cur = 0;
+        int len = code.size();
+        while (cur < len) {
+            parser::Token token = matchLongest(code, cur);
+            parser::TokenType type = token.type;
+            if (type == parser::INVALID)
+                throw "Invalid tokens!";
+
+            cur += token.tok.size();
+            if (type != parser::BLANK) {
+                // some special judge, to handle with negative number
+                if (type == parser::INT) {
+                    if (token.tok[0] == '(') { // remove the parenthesis
+                        token.tok = token.tok.substr(1, token.tok.size() - 2);
+                    } else {
+                        int len = tokens.size();
+                        if (len > 2 && tokens[len - 1].type == parser::MINUS &&
+                            (tokens[len - 2].type == parser::PRINT || tokens[len - 2].type == parser::EQ)) {
+                            // special judge, the negative number at the beginning
+                            tokens[len - 1].type = parser::INT;
+                            tokens[len - 1].tok += token.tok;
+                            std::cout << "special judge: " << tokens[len - 1] << std::endl;
+                            continue;
+                        }
+                    }
+                }
+                tokens.push_back(token);
+                std::cout << "Read token " << token << std::endl;
+            }
         }
         return tokens;
     }
@@ -48,7 +68,7 @@ namespace lexer {
     const std::string Lexer::endFmt = "END";
     const std::string Lexer::inputFmt = "INPUT";
     const std::string Lexer::idFmt = "[a-zA-Z][a-zA-Z0-9]*";
-    const std::string Lexer::intFmt = "(\\-)?[0-9]+";
+    const std::string Lexer::intFmt = "[0-9]+|(\\((\\-)?[0-9]+\\))";
     const std::string Lexer::eqFmt = "=";
     const std::string Lexer::ltFmt = "\\<";
     const std::string Lexer::leFmt = "\\<=";

@@ -44,13 +44,19 @@ namespace parser {
         std::stack <Token> opStack;
         Token lastToken = Token::makeToken("", INVALID);
         opStack.push(Token::makeToken("", INVALID));
+//        for (const Token &token:tokens) {
+//            std::cout << "RPN: " << token << std::endl;
+//        }
         for (const Token &token:tokens) {
             TokenType lastType = lastToken.type;
+            lastToken = token;
             switch (token.type) {
                 case ID:
                 case INT: {
-                    if (lastType == ID || lastType == INT || lastType == RPAREN)
+                    if (lastType == ID || lastType == INT || lastType == RPAREN) {
+//                        std::cout << "this token: " << token << std::endl;
                         throw "Invalid exp!";
+                    }
                     rpn.push_back(token);
                     break;
                 }
@@ -89,7 +95,6 @@ namespace parser {
                 default:
                     throw "Invalid exp!";
             }
-            lastToken = token;
         }
 
         while (opStack.size() > 1) {

@@ -19,6 +19,8 @@ namespace lexer {
             return std::regex_match(lex, std::regex(fmt));
         }
 
+        static parser::Token matchLongest(const std::string &code, int start);
+
         static inline parser::TokenType match(const std::string &lex) {
             for (const auto &fmtAndTy: fmtAndType) {
                 if (isMatched(fmtAndTy.first, lex)) {

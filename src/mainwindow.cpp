@@ -24,6 +24,8 @@ MainWindow::MainWindow(QWidget *parent)
           lexer(std::make_unique<Lexer>()), parser(std::make_unique<Parser>()) {
     ui->setupUi(this);
 
+    ui->codeDisplay->setLineWrapMode(QTextBrowser::NoWrap);
+
     QApplication::connect(ui->btnLoadCode, &QPushButton::clicked, this, &MainWindow::load);
     QApplication::connect(ui->btnRunCode, &QPushButton::clicked, this, &MainWindow::run);
     QApplication::connect(ui->btnClearCode, &QPushButton::clicked, this, &MainWindow::clear);
@@ -95,6 +97,10 @@ void MainWindow::addRawStatement(RawStatement *rawStmt) {
         int curLineno = (*it)->lineno;
         if (curLineno > tgtLineno) {
             break;
+        } else if (curLineno == tgtLineno) {
+            (*it)->srcCode = rawStmt->srcCode;
+            delete rawStmt;
+            return;
         }
     }
     rawStatements.insert(it, rawStmt);
@@ -151,7 +157,7 @@ void MainWindow::parseAndPrint() {
 //                std::cout << "read token: " << token << std::endl;
 //            }
 
-            std::cout << "Parsing: " << rawStmt->srcCode << std::endl;
+//            std::cout << "Parsing: " << rawStmt->srcCode << std::endl;
 
             // Parse stmt.
             auto stmt = parser->parse(rawStmt->lineno, rawStmt->srcCode, tokens);
@@ -258,6 +264,7 @@ void MainWindow::clear() {
 
 void MainWindow::highlight(int index, QColor color) {
     QTextCursor cursor = ui->codeDisplay->textCursor();
+//    std::cout << "highlight line  " << index << std::endl;
     cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
     for (int i = 0; i < index; ++i) {
         cursor.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor);
@@ -273,7 +280,7 @@ void MainWindow::highlight(int index, QColor color) {
 void MainWindow::gotoLine(int lineno) {
     int len = statements.size();
     for (int i = 0; i < len; ++i) {
-        if (statements[i]->getLineno() == lineno) {
+        if (statements[i] && statements[i]->getLineno() == lineno) {
             stmtIdx = i;
             return;
         }
@@ -308,7 +315,7 @@ void MainWindow::load() {
     std::string line;
     while (std::getline(file, line)) {
         if (line.empty()) continue;
-        std::cout << "read line: " << line << std::endl;
+//        std::cout << "read line: " << line << std::endl;
         try {
             RawStatement *rawStmt = RawStatement::fromCmdline(line);
             addRawStatement(rawStmt);
@@ -389,7 +396,7 @@ void MainWindow::inputInBackGround(const std::string &var) {
 
     if (std::regex_match(inputValue, intFmt)) {
         tenv->enter(var, env::INT);
-        std::cout << tenv->look(var) << std::endl;
+//        std::cout << tenv->look(var) << std::endl;
         venv->enter(var, env::Value(std::atoi(inputValue.c_str())));
     } else if (std::regex_match(inputValue, strFmt)) {
         tenv->enter(var, env::STRING);
@@ -416,7 +423,7 @@ bool MainWindow::isBuiltinCmd(const std::string &cmdline) const {
 }
 
 void MainWindow::runBuiltinCmd(const std::string &cmdline) {
-    std::cout << "run: " << cmdline << std::endl;
+//    std::cout << "run: " << cmdline << std::endl;
 
     if (cmdline == "LIST") {
         return;
