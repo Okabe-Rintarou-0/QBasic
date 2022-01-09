@@ -44,9 +44,7 @@ namespace parser {
         std::stack <Token> opStack;
         Token lastToken = Token::makeToken("", INVALID);
         opStack.push(Token::makeToken("", INVALID));
-//        for (const Token &token:tokens) {
-//            std::cout << "RPN: " << token << std::endl;
-//        }
+
         for (const Token &token:tokens) {
             TokenType lastType = lastToken.type;
             lastToken = token;
@@ -54,7 +52,6 @@ namespace parser {
                 case ID:
                 case INT: {
                     if (lastType == ID || lastType == INT || lastType == RPAREN) {
-//                        std::cout << "this token: " << token << std::endl;
                         throw "Invalid exp!";
                     }
                     rpn.push_back(token);
@@ -109,10 +106,6 @@ namespace parser {
         std::stack < syntax::Exp * > expStack;
         computeRPN(tokens, rpn);
 
-        std::cout << "rpn" << std::endl;
-        for (auto token: rpn) {
-            std::cout << token << std::endl;
-        }
         for (auto token:rpn) {
             switch (token.type) {
                 case INT: {
@@ -169,7 +162,6 @@ namespace parser {
     }
 
     syntax::LogicalExp *Parser::parseLogical(const std::vector <Token> &tokens) const {
-        std::cout << "called" << std::endl;
         int idx = -1;
         int len = tokens.size();
         for (int i = 0; i < len; ++i) {
@@ -184,14 +176,10 @@ namespace parser {
         std::vector <Token> leftTokens(tokens.begin(), tokens.begin() + idx);
         std::vector <Token> rightTokens(tokens.begin() + idx + 1, tokens.end());
 
-        std::cout << leftTokens.size() << "and " << rightTokens.size() << std::endl;
-
         if (leftTokens.empty() || rightTokens.empty()) throw "Invalid if then exp!";
 
         syntax::Exp *left = parseArithmetic(leftTokens);
         syntax::Exp *right = parseArithmetic(rightTokens);
-
-        std::cout << "logical op: " << tokens[idx] << std::endl;
 
         switch (tokens[idx].type) {
             case EQ:

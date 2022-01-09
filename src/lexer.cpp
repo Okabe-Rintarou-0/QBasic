@@ -23,7 +23,6 @@ namespace lexer {
     }
 
     std::vector <parser::Token> Lexer::scan(const std::string &code) const {
-        std::cout << "start scan " << code << std::endl;
         std::vector <parser::Token> tokens;
         int cur = 0;
         int len = code.size();
@@ -46,13 +45,11 @@ namespace lexer {
                             // special judge, the negative number at the beginning
                             tokens[len - 1].type = parser::INT;
                             tokens[len - 1].tok += token.tok;
-                            std::cout << "special judge: " << tokens[len - 1] << std::endl;
                             continue;
                         }
                     }
                 }
                 tokens.push_back(token);
-                std::cout << "Read token " << token << std::endl;
             }
         }
         return tokens;

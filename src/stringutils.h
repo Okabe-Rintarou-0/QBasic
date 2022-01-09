@@ -17,7 +17,6 @@ public:
         int cursor = 0;
         int subStrNo = 1;
         int len = target.size();
-//        std::cout << subStrNo << std::endl;
         while (subStrNo < maxNum && cursor < len) {
             auto pos = target.find(separate, cursor);
             if (pos != std::string::npos) {
@@ -29,10 +28,6 @@ public:
         if (cursor < len) {
             results.emplace_back(target.substr(cursor, len - cursor));
         }
-
-//        for (auto result:results) {
-//            std::cout << result << std::endl;
-//        }
     }
 
     static inline std::string trim(const std::string &str) {

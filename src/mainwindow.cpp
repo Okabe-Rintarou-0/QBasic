@@ -153,12 +153,6 @@ void MainWindow::parseAndPrint() {
         auto rawStmt = rawStatements[i];
         try {
             auto tokens = lexer->scan(rawStmt->srcCode);
-//            for (auto token: tokens) {
-//                std::cout << "read token: " << token << std::endl;
-//            }
-
-//            std::cout << "Parsing: " << rawStmt->srcCode << std::endl;
-
             // Parse stmt.
             auto stmt = parser->parse(rawStmt->lineno, rawStmt->srcCode, tokens);
 
@@ -188,7 +182,6 @@ void MainWindow::parseAndPrint() {
     }
 }
 
-///TODO: solve the problem when press RUN when INPUTTING
 void MainWindow::run() {
     lastRunningState = runningState;
     runningState = RUNNING;
@@ -264,7 +257,6 @@ void MainWindow::clear() {
 
 void MainWindow::highlight(int index, QColor color) {
     QTextCursor cursor = ui->codeDisplay->textCursor();
-//    std::cout << "highlight line  " << index << std::endl;
     cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
     for (int i = 0; i < index; ++i) {
         cursor.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor);
@@ -315,7 +307,6 @@ void MainWindow::load() {
     std::string line;
     while (std::getline(file, line)) {
         if (line.empty()) continue;
-//        std::cout << "read line: " << line << std::endl;
         try {
             RawStatement *rawStmt = RawStatement::fromCmdline(line);
             addRawStatement(rawStmt);
@@ -396,7 +387,6 @@ void MainWindow::inputInBackGround(const std::string &var) {
 
     if (std::regex_match(inputValue, intFmt)) {
         tenv->enter(var, env::INT);
-//        std::cout << tenv->look(var) << std::endl;
         venv->enter(var, env::Value(std::atoi(inputValue.c_str())));
     } else if (std::regex_match(inputValue, strFmt)) {
         tenv->enter(var, env::STRING);
@@ -423,8 +413,6 @@ bool MainWindow::isBuiltinCmd(const std::string &cmdline) const {
 }
 
 void MainWindow::runBuiltinCmd(const std::string &cmdline) {
-//    std::cout << "run: " << cmdline << std::endl;
-
     if (cmdline == "LIST") {
         return;
     }
