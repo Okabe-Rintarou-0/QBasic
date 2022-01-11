@@ -15,7 +15,6 @@ SOURCES += \
     parser.cpp \
     statement.cpp \
     syntax.cpp \
-    table.cpp
 
 HEADERS += \
     lexer.h \
